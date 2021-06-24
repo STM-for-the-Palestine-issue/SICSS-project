@@ -71,7 +71,7 @@ model.stm <- stm(
 #threshold variable is 1 for events since 11 May and 0 for before
 
 
-### Plot
+### Plots
 
 plot(model.stm)
 plot(model.stm, type = "summary", xlim = c(0, .3))
@@ -133,5 +133,27 @@ result_keyness1 <- textstat_keyness(mydfm_groupedbyUS, target = 1)
 textplot_keyness(result_keyness1) 
 
 result_keyness2 <- textstat_keyness(mydfm_groupedbythreshold, target = 1)
-textplot_keyness(result_keyness2) 
+textplot_keyness(result_keyness2)
+
+library(tidytext)
+library(dplyr)
+library(ggplot2)
+
+#bar graph
+model.stm_tidy <- tidy(model.stm, matrix = "beta")
+
+model.stm_tidy_terms <- 
+  model.stm_tidy %>%
+  group_by(topic) %>%
+  top_n(10, beta) %>%
+  ungroup() %>%
+  arrange(topic, -beta)
+
+model.stm_tidy_terms %>%
+  mutate(term = reorder(term, beta)) %>%
+  ggplot(aes(term, beta, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  coord_flip()
+
 
