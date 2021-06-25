@@ -110,7 +110,7 @@ plot(contentBA, type = "perspectives", plabels = c("Before","After"),
 par(mfrow=c(1,1), mai=c(1,1,1,1))
 
 
-** Word Clouds
+## Word Clouds
 
 install.packages("quanteda.textplots")
 library(quanteda.textplots)
