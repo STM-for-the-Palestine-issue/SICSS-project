@@ -1,4 +1,23 @@
-### Plot
+### Plots
+
+
+# Frequency change over time
+ts_plot(tw, by="hours") +
+  labs(x = NULL, y = NULL,
+       title = "Tweets Frequency on Palestine Change over Time",
+       subtitle = paste0(format(min(tw$created_at), "%d %B %Y"), " to ", format(max(tw$created_at),"%d %B %Y")),
+       caption = "Data Acquired using Twitter's API v2") +
+  theme_minimal()
+
+# try different models with different number of topics
+indingk <- searchK(out$documents, 
+                   out$vocab, 
+                   K = c(5:25),
+                   prevalence =~ threshold + US, 
+                   data = meta, 
+                   verbose=FALSE)
+plot(indingk) #see diagnostics
+
 
 plot(model.stm)
 plot(model.stm, type = "summary", xlim = c(0, .3))
