@@ -9,9 +9,17 @@ library(lubridate)
 
 bearer_token <- ...
 
-#texts2 is our cleaned twitter data
-
 texts2$days <- day(texts2$created_at)
+
+texts2$US <- factor(texts2$US,
+                    levels = c(0,1),
+                    labels = c("UK", "US"))
+
+                    
+texts2$threshold <- factor(texts2$threshold,
+                    levels = c(0,1),
+                    labels = c("Before", "After"))
+
 mycorpus <- corpus(texts2)
 
 token <-
@@ -33,7 +41,7 @@ token_ungd1 <- tokens_select(
 
 token_ungd2 <- tokens_remove(
   token_ungd1,
-  pattern = stopwords("en"))
+  pattern = stopwords(source="smart"))
 
 token_ungd3 <- tokens_tolower(
   token_ungd2, 
@@ -54,7 +62,7 @@ mydfm.trim <-
 
 library(stm)
 # Assigns the number of topics
-topic.count <- 7
+topic.count <- 9
 # Convert DFM to a STM object
 dfm2stm <- convert(mydfm.trim,
                    to = "stm")
@@ -67,33 +75,40 @@ model.stm <- stm(
   data = dfm2stm$meta,
   init.type = "Spectral")
 
-#US variable is 1 for US and 0 for UK
-#threshold variable is 1 for events since 11 May and 0 for before
 
 
-### Plots
+
+### Plot
 
 plot(model.stm)
 plot(model.stm, type = "summary", xlim = c(0, .3))
 plot(model.stm, type = "labels", xlim = c(0, .3))
 
-predict_topics <- estimateEffect(formula = 1:7 ~ threshold + US + s(days), stmobj = model.stm, metadata = dfm2stm$meta, un = "Global")
 
-plot(predict_topics, covariate = "threshold", topics = 1:7,
+
+predict_topics <- estimateEffect(formula = 1:9 ~ threshold + US + s(days), stmobj = model.stm, metadata = dfm2stm$meta, un = "Global")
+
+plot(predict_topics, covariate = "US", topics = 1:9,
      model = model.stm, method = "difference",
      cov.value1 = 0, cov.value2 = 1,
-     xlab = "Before and After",
+     xlab = "US vs UK",
+     main = "Effects of country",
+     #xlim = c(-.1, .1), 
+     labeltype = "custom")
+
+plot(predict_topics, covariate = "threshold", topics = 1:9,
+     model = model.stm, method = "difference",
+     cov.value1 = 1, cov.value2 = 0,
+     xlab = "before ..... after",
      main = "Effects of Hamas rockets",
      #xlim = c(-.1, .1), 
      labeltype = "custom")
 
+
 ## plot change in the prevalence of topic over time
 
-plot(predict_topics, "days", method = "continuous", topics = 1:7,
-     model = z, xaxt = "n", xlab = "days in May",
-     labeltype = "numbers",
-     covariate = topic.count,
-     verbose.labels = T)
+plot(predict_topics, "days", method = "continuous", topics = 9,
+     model = z, xaxt = "n", xlab = "days in May", printlegend = FALSE)
 
 dayseq <- seq(from = as.Date("2021-05-01"),
                 to = as.Date("2021-05-31"), by = "day")
@@ -102,16 +117,18 @@ axis(1,at = as.numeric(dayseq) - min(as.numeric(dayseq)),
 legend(10, 95, legend=c("1","2","3","4","5","6","7"),
        col=c("red","blue","red","blue","red","blue","red"))
 
+
 install.packages("quanteda.textplots")
 library(quanteda.textplots)
 
 textplot_wordcloud(mydfm, comparison = FALSE, max_words = 300, color = rev(RColorBrewer::brewer.pal(10, "RdBu")))
 
-mydfm_groupedbyUS <- dfm_group(mydfm.trim, groups = US)
-mydfm_groupedbythreshold <- dfm_group(mydfm.trim, groups = threshold)
+mydfm_groupedbyUS <- dfm_group(mydfm, groups = US)
+mydfm_groupedbythreshold <- dfm_group(mydfm, groups = threshold)
 
 textplot_wordcloud(mydfm_groupedbyUS, comparison = TRUE, max_words = 300, color = rev(RColorBrewer::brewer.pal(10, "RdBu")))
 textplot_wordcloud(mydfm_groupedbythreshold, comparison = TRUE, max_words = 300, color = rev(RColorBrewer::brewer.pal(10, "RdBu")))
+
 
 install.packages("quanteda.textstats")
 library(quanteda.textstats)
@@ -129,17 +146,19 @@ ggplot(data = freq_weight, aes(x = nrow(freq_weight):1, y = frequency)) +
                      labels = freq_weight$feature) +
   labs(x = NULL, y = "Relative frequency")
 
+
 result_keyness1 <- textstat_keyness(mydfm_groupedbyUS, target = 1)
-textplot_keyness(result_keyness1) 
+textplot_keyness(result_keyness1)
 
 result_keyness2 <- textstat_keyness(mydfm_groupedbythreshold, target = 1)
-textplot_keyness(result_keyness2)
+textplot_keyness(result_keyness2) 
 
+
+install.packages("dplyr")
 library(tidytext)
 library(dplyr)
 library(ggplot2)
 
-#bar graph
 model.stm_tidy <- tidy(model.stm, matrix = "beta")
 
 model.stm_tidy_terms <- 
@@ -155,5 +174,3 @@ model.stm_tidy_terms %>%
   geom_col(show.legend = FALSE) +
   facet_wrap(~ topic, scales = "free") +
   coord_flip()
-
-
